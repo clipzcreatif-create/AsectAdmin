@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asect | Admin System</title>
+    <!-- Import Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        /* TEMA: HITAM & MERAH ASECT */
+        :root {
+            --bg-dark: #070707;
+            --bg-sidebar: #0f0f0f;
+            --bg-panel: #161616;
+            --bg-card: #1f1f1f;
+            --text-main: #ffffff;
+            --text-muted: #a0a0a0;
+            --accent-red: #d30000;
+            --accent-red-hover: #ff1a1a;
+            --border-color: #2a2a2a;
+            --success-green: #00e676;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- SIDEBAR --- */
+        .sidebar {
+            width: 280px;
+            background-color: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+            transition: transform 0.3s ease;
+        }
+        .sidebar-logo {
+            padding: 40px 20px;
+            text-align: center;
+        }
+        .sidebar-logo img {
+            max-width: 160px;
+            filter: drop-shadow(0 0 10px rgba(211, 0, 0, 0.3));
+        }
+        .menu {
+            list-style: none;
+            padding: 10px 0;
+            flex-grow: 1;
+        }
+        .menu-label {
+            padding: 0 25px 10px;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .menu li {
+            padding: 15px 25px;
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--text-muted);
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 0.9rem;
+        }
+        .menu li:hover {
+            color: var(--text-main);
+            background-color: rgba(255,255,255,0.03);
+        }
+        .menu li.active {
+            background-color: rgba(211, 0, 0, 0.1);
+            color: var(--text-main);
+            border-left: 4px solid var(--accent-red);
+        }
+
+        /* --- MAIN CONTENT --- */
+        .main-content {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+            background: radial-gradient(circle at top right, #1a0a0a, #070707);
+        }
+        .header-title {
+            font-size: 2.2rem;
+            font-weight: 900;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .header-subtitle {
+            color: var(--text-muted);
+            margin-bottom: 40px;
+            font-size: 0.9rem;
+        }
+
+        /* --- DASHBOARD WIDGETS --- */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        .stat-card {
+            background: var(--bg-panel);
+            padding: 25px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .stat-card h4 { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; }
+        .stat-card .value { font-size: 2rem; font-weight: 900; color: var(--accent-red); }
+
+        /* --- TAB CONTENT --- */
+        .tab-pane {
+            display: none;
+            animation: slideUp 0.4s ease;
+        }
+        .tab-pane.active {
+            display: block;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- FORM & CARD --- */
+        .card {
+            background-color: var(--bg-panel);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            overflow-x: auto;
+        }
+        .card h3 { color: var(--text-main); font-weight: 700; text-transform: uppercase; font-size: 1.1rem; margin-bottom: 20px; }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .form-group { margin-bottom: 20px; }
+        .full-width { grid-column: 1 / -1; }
+        
+        label { display: block; margin-bottom: 10px; font-size: 0.85rem; color: var(--text-muted); font-weight: 600; }
+        .form-control {
+            width: 100%;
+            padding: 14px;
+            background-color: var(--bg-dark);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            border-radius: 8px;
+            outline: none;
+            transition: 0.3s;
+        }
+        .form-control:focus { border-color: var(--accent-red); box-shadow: 0 0 10px rgba(211, 0, 0, 0.2); }
+        
+        /* --- SIZE & STOCK INPUTS --- */
+        .size-stock-wrapper {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 5px;
+        }
+        .size-stock-item {
+            background: #111;
+            padding: 10px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            border: 1px solid #222;
+        }
+        .size-stock-item label {
+            margin-bottom: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            color: #fff;
+        }
+        .size-stock-item input[type="number"] {
+            width: 100%;
+            padding: 6px;
+            background: #000;
+            border: 1px solid #333;
+            color: #fff;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+
+        /* --- SIZE INDICATOR --- */
+        .size-indicator {
+            margin-top: 15px;
+            padding: 15px;
+            background: #000;
+            border-radius: 8px;
+            border: 1px solid #222;
+        }
+        .size-bar-container { width: 100%; height: 6px; background: #222; border-radius: 3px; margin: 10px 0; overflow: hidden; }
+        #size-bar { height: 100%; width: 0%; background: var(--success-green); transition: 0.5s; }
+
+        /* --- TABLE --- */
+        .table-container { border-radius: 12px; overflow-x: auto; border: 1px solid var(--border-color); width: 100%; }
+        table { width: 100%; min-width: 600px; border-collapse: collapse; background: var(--bg-panel); }
+        th { background: #111; padding: 18px; text-align: left; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+        td { padding: 18px; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; }
+        tr:hover { background: rgba(255,255,255,0.02); }
+
+        .btn {
+            background-color: var(--accent-red);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            font-weight: 700;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+        }
+        .btn:hover:not(:disabled) { background-color: var(--accent-red-hover); transform: translateY(-2px); }
+        .btn:disabled { background-color: #333; cursor: not-allowed; }
+
+        /* --- IMAGES --- */
+        .product-img-preview { width: 50px; height: 50px; object-fit: cover; border-radius: 6px; border: 1px solid #333; }
+        .img-stack { display: flex; align-items: center; }
+        .img-stack img:not(:first-child) { margin-left: -25px; border: 2px solid var(--bg-panel); }
+
+        /* --- TOAST --- */
+        #toast-container { position: fixed; top: 30px; right: 30px; z-index: 1000; }
+        .toast { background: var(--bg-card); color: #fff; padding: 15px 25px; border-radius: 8px; border-left: 4px solid var(--accent-red); margin-bottom: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); transform: translateX(120%); transition: 0.4s; }
+        .toast.show { transform: translateX(0); }
+
+        /* --- MODAL EDIT --- */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+        .modal-overlay.active { display: flex; animation: fadeIn 0.3s ease; }
+        .modal-content { background: var(--bg-panel); width: 90%; max-width: 800px; max-height: 90vh; overflow-y: auto; border-radius: 12px; border: 1px solid var(--border-color); padding: 30px; position: relative; }
+        .modal-close { position: absolute; top: 20px; right: 20px; font-size: 1.5rem; color: var(--text-muted); cursor: pointer; background: none; border: none; outline: none; }
+        .modal-close:hover { color: var(--accent-red); }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            .sidebar { width: 100%; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: space-between; border-right: none; border-bottom: 1px solid var(--border-color); padding: 10px; }
+            .sidebar-logo { padding: 10px; }
+            .sidebar-logo img { max-width: 100px; }
+            .menu-label { display: none; }
+            .menu { display: flex; overflow-x: auto; padding: 0; margin: 0; width: 100%; }
+            .menu li { padding: 10px 15px; font-size: 0.8rem; white-space: nowrap; border-left: none; border-bottom: 3px solid transparent; }
+            .menu li.active { border-left: none; border-bottom: 3px solid var(--accent-red); }
+            .main-content { padding: 20px; }
+            .form-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="toast-container"></div>
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <div class="sidebar-logo">
+            <img src="https://drive.google.com/thumbnail?id=1fTpuEMw39pqVOxMN-NFnojVDoS_Mr764&sz=w500" alt="Asect Logo" onerror="this.src='https://via.placeholder.com/160x50/111111/d30000?text=ASECT'">
+        </div>
+        
+        <div class="menu-label">Navigasi Utama</div>
+        <ul class="menu">
+            <li class="active" onclick="switchTab('dashboard')">🏠 Beranda</li>
+            <li onclick="switchTab('produk')">📦 Kelola Produk</li>
+            <li onclick="switchTab('banner')">🖼️ Kelola Banner</li>
+            <li onclick="switchTab('promosi')">🎟️ Kelola Promosi</li>
+            <li onclick="switchTab('pesanan')">🛒 Daftar Pesanan</li>
+        </ul>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+        
+        <!-- TAB: DASHBOARD -->
+        <div id="tab-dashboard" class="tab-pane active">
+            <h1 class="header-title">Beranda</h1>
+            <p class="header-subtitle">Ringkasan operasional Asect hari ini.</p>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h4>Total Produk</h4>
+                    <div class="value" id="stat-products">0</div>
+                </div>
+                <div class="stat-card">
+                    <h4>Promo Aktif</h4>
+                    <div class="value" id="stat-promos">0</div>
+                </div>
+                <div class="stat-card">
+                    <h4>Total Pesanan</h4>
+                    <div class="value" id="stat-orders">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: KELOLA PRODUK -->
+        <div id="tab-produk" class="tab-pane">
+            <h1 class="header-title">Kelola Produk</h1>
+            <p class="header-subtitle">Tambah dan atur katalog baju Asect.</p>
+
+            <div class="card">
+                <h3>Tambah Produk Baru</h3>
+                <form id="addProductForm" class="form-grid">
+                    <div class="form-group">
+                        <label>Nama Produk</label>
+                        <input type="text" id="prodName" class="form-control" placeholder="Nama Baju..." required>
+                    </div>
+                    <div class="form-group">
+                        <label>Harga (Rp)</label>
+                        <input type="number" id="prodPrice" class="form-control" placeholder="150000" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Kategori</label>
+                        <select id="prodCat" class="form-control">
+                            <option value="T-Shirt">T-Shirt</option>
+                            <option value="Hoodie">Hoodie</option>
+                            <option value="Jacket">Jacket</option>
+                            <option value="Pants">Pants</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Material</label>
+                        <input type="text" id="prodMaterial" class="form-control" placeholder="Cotton Combed 24s">
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Deskripsi Detail</label>
+                        <textarea id="prodDesc" class="form-control" rows="3" placeholder="Detail produk..."></textarea>
+                    </div>
+                    
+                    <div class="form-group full-width">
+                        <label>Ukuran & Stok Satuan</label>
+                        <div class="size-stock-wrapper">
+                            <div class="size-stock-item">
+                                <label><input type="checkbox" name="sizeOpt" value="S"> S</label>
+                                <input type="number" class="size-qty" data-size="S" placeholder="Stok" min="0" value="0">
+                            </div>
+                            <div class="size-stock-item">
+                                <label><input type="checkbox" name="sizeOpt" value="M"> M</label>
+                                <input type="number" class="size-qty" data-size="M" placeholder="Stok" min="0" value="0">
+                            </div>
+                            <div class="size-stock-item">
+                                <label><input type="checkbox" name="sizeOpt" value="L"> L</label>
+                                <input type="number" class="size-qty" data-size="L" placeholder="Stok" min="0" value="0">
+                            </div>
+                            <div class="size-stock-item">
+                                <label><input type="checkbox" name="sizeOpt" value="XL"> XL</label>
+                                <input type="number" class="size-qty" data-size="XL" placeholder="Stok" min="0" value="0">
+                            </div>
+                            <div class="size-stock-item">
+                                <label><input type="checkbox" name="sizeOpt" value="XXL"> XXL</label>
+                                <input type="number" class="size-qty" data-size="XXL" placeholder="Stok" min="0" value="0">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>Foto Produk (Maks 5 - Kualitas HD)</label>
+                        <input type="file" id="prodImgFiles" class="form-control" accept="image/*" multiple required>
+                        <div class="size-indicator">
+                            <div style="display:flex; justify-content:space-between; font-size:0.75rem;">
+                                <span id="size-text">0 KB</span>
+                                <span>Maks: 919 KB</span>
+                            </div>
+                            <div class="size-bar-container"><div id="size-bar"></div></div>
+                        </div>
+                    </div>
+                    <div class="full-width">
+                        <button type="submit" class="btn" id="btnSubmit">Simpan Produk</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="card">
+                <h3>Daftar Produk</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr><th>Gambar</th><th>Produk</th><th>Detail Stok</th><th>Aksi</th></tr>
+                        </thead>
+                        <tbody id="productTableBody">
+                            <tr><td colspan="4" style="text-align:center;">Memuat data...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: BANNER -->
+        <div id="tab-banner" class="tab-pane">
+            <h1 class="header-title">Kelola Banner</h1>
+            <p class="header-subtitle">Atur banner utama halaman toko.</p>
+            <div class="card">
+                <form id="updateBannerForm">
+                    <div class="form-group"><label>Headline</label><input type="text" id="bannerTitle" class="form-control" required></div>
+                    <div class="form-group"><label>Sub-Headline</label><input type="text" id="bannerSubtitle" class="form-control" required></div>
+                    <div class="form-group"><label>Background (1200px)</label><input type="file" id="bannerImgFile" class="form-control" accept="image/*"></div>
+                    <button type="submit" class="btn" id="btnBannerSubmit">Update Banner</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- TAB: PROMOSI -->
+        <div id="tab-promosi" class="tab-pane">
+            <h1 class="header-title">Kelola Promosi</h1>
+            <p class="header-subtitle">Buat diskon khusus dan kode promo.</p>
+            <div class="card">
+                <form id="addPromoForm" class="form-grid">
+                    <div class="form-group">
+                        <label>Tipe Promo</label>
+                        <select id="promoType" class="form-control" onchange="togglePromoCodeInput()">
+                            <option value="code">Kode Promo</option>
+                            <option value="direct">Diskon Langsung</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="promoCodeGroup"><label>Kode</label><input type="text" id="promoCode" class="form-control" style="text-transform:uppercase;"></div>
+                    <div class="form-group"><label>Diskon (%)</label><input type="number" id="promoDiscount" class="form-control" required></div>
+                    <div class="form-group full-width"><label>Target Produk</label><div id="promoProductsContainer" style="max-height: 150px; overflow-y: auto; background: #000; padding: 15px; border-radius: 8px;">Memuat produk...</div></div>
+                    <div class="full-width"><button type="submit" class="btn" id="btnPromoSubmit">Aktifkan Promo</button></div>
+                </form>
+            </div>
+            <div class="card">
+                <div class="table-container">
+                    <table>
+                        <thead><tr><th>Tipe/Kode</th><th>Potongan</th><th>Target</th><th>Aksi</th></tr></thead>
+                        <tbody id="promoTableBody">
+                             <tr><td colspan="4" style="text-align:center;">Memuat data...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- TAB: PESANAN (BARU DITAMBAHKAN) -->
+        <div id="tab-pesanan" class="tab-pane">
+            <h1 class="header-title">Daftar Pesanan</h1>
+            <p class="header-subtitle">Pantau dan kelola transaksi masuk.</p>
+            <div class="card">
+                <div class="table-container">
+                    <table>
+                        <thead><tr><th>ID Pesanan</th><th>Pelanggan</th><th>Total</th><th>Status</th><th>Aksi</th></tr></thead>
+                        <tbody id="orderTableBody">
+                            <tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--text-muted);">Belum ada pesanan masuk saat ini.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL EDIT PRODUK -->
+        <div class="modal-overlay" id="editModalOverlay">
+            <div class="modal-content">
+                <button class="modal-close" onclick="closeEditModal()">✖</button>
+                <h3 style="margin-bottom: 20px; color: var(--text-main); font-weight: 700; text-transform: uppercase;">Edit Produk</h3>
+                <form id="editProductForm" class="form-grid">
+                    <input type="hidden" id="editProdId">
+                    <div class="form-group">
+                        <label>Nama Produk</label>
+                        <input type="text" id="editProdName" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Harga (Rp)</label>
+                        <input type="number" id="editProdPrice" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Kategori</label>
+                        <select id="editProdCat" class="form-control">
+                            <option value="T-Shirt">T-Shirt</option>
+                            <option value="Hoodie">Hoodie</option>
+                            <option value="Jacket">Jacket</option>
+                            <option value="Pants">Pants</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Material</label>
+                        <input type="text" id="editProdMaterial" class="form-control">
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Deskripsi Detail</label>
+                        <textarea id="editProdDesc" class="form-control" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="form-group full-width">
+                        <label>Ukuran & Stok Satuan (Centang untuk aktifkan ukuran)</label>
+                        <div class="size-stock-wrapper">
+                            <div class="size-stock-item"><label><input type="checkbox" id="editSizeOpt-S" value="S"> S</label><input type="number" id="editSizeQty-S" placeholder="Stok" min="0" value="0"></div>
+                            <div class="size-stock-item"><label><input type="checkbox" id="editSizeOpt-M" value="M"> M</label><input type="number" id="editSizeQty-M" placeholder="Stok" min="0" value="0"></div>
+                            <div class="size-stock-item"><label><input type="checkbox" id="editSizeOpt-L" value="L"> L</label><input type="number" id="editSizeQty-L" placeholder="Stok" min="0" value="0"></div>
+                            <div class="size-stock-item"><label><input type="checkbox" id="editSizeOpt-XL" value="XL"> XL</label><input type="number" id="editSizeQty-XL" placeholder="Stok" min="0" value="0"></div>
+                            <div class="size-stock-item"><label><input type="checkbox" id="editSizeOpt-XXL" value="XXL"> XXL</label><input type="number" id="editSizeQty-XXL" placeholder="Stok" min="0" value="0"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label>Foto Produk (Kosongkan jika tidak ingin mengganti foto lama)</label>
+                        <input type="file" id="editProdImgFiles" class="form-control" accept="image/*" multiple>
+                    </div>
+                    <div class="full-width">
+                        <button type="submit" class="btn" id="btnEditSubmit">Update Produk</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, deleteDoc, doc, setDoc, updateDoc, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- 100% CONFIG MURNI FIREBASE LU (Tanpa campur tangan AI) ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCf0FUA2mFDADHydsunLFkk6YQb4wo3z2k",
+            authDomain: "asect-bbe45.firebaseapp.com",
+            projectId: "asect-bbe45",
+            storageBucket: "asect-bbe45.firebasestorage.app",
+            messagingSenderId: "552312384491",
+            appId: "1:552312384491:web:8773e4aa1ce436381847ae",
+            measurementId: "G-J58J3SQNGW"
+        };
+
+        // Inisialisasi Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        
+        const MAX_DB_SIZE_KB = 919;
+        let currentProcessedFilesBase64 = [];
+        let editProcessedFilesBase64 = []; // Penampung gambar buat mode edit
+        window.productsData = {}; // Dictionary global untuk simpan data produk
+
+        // --- UI UTILS ---
+        window.switchTab = function(tabId) {
+            document.querySelectorAll('.menu li').forEach(li => li.classList.remove('active'));
+            if (event) event.currentTarget.classList.add('active');
+            document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+        };
+
+        window.showToast = (msg, type='success') => {
+            const container = document.getElementById('toast-container');
+            const t = document.createElement('div');
+            t.className = `toast ${type}`;
+            t.innerText = msg;
+            container.appendChild(t);
+            setTimeout(() => t.classList.add('show'), 10);
+            setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 400); }, 3000);
+        };
+
+        // --- IMAGE COMPRESSION ---
+        function compressImage(file) {
+            return new Promise((res, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = e => {
+                    const img = new Image();
+                    img.src = e.target.result;
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const MAX = 800; // Resolusi diturunkan dikit agar load Firestore super cepat
+                        let scale = 1;
+                        if (img.width > MAX) scale = MAX / img.width;
+                        canvas.width = img.width * scale;
+                        canvas.height = img.height * scale;
+                        const ctx = canvas.getContext('2d');
+                        ctx.imageSmoothingQuality = 'high';
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        res(canvas.toDataURL('image/jpeg', 0.8));
+                    };
+                    img.onerror = () => reject("Gagal meload gambar");
+                };
+                reader.onerror = () => reject("Gagal membaca file");
+            });
+        }
+
+        async function updateSize(files) {
+            const results = await Promise.all(Array.from(files).slice(0,5).map(f => compressImage(f)));
+            currentProcessedFilesBase64 = results;
+            let total = results.reduce((acc, str) => acc + str.length, 0);
+            const kb = Math.round(total / 1024);
+            document.getElementById('size-text').innerText = kb + " KB";
+            document.getElementById('size-bar').style.width = Math.min((kb/MAX_DB_SIZE_KB)*100, 100) + "%";
+            document.getElementById('btnSubmit').disabled = kb > MAX_DB_SIZE_KB;
+        }
+
+        document.getElementById('prodImgFiles').addEventListener('change', e => updateSize(e.target.files));
+
+        // Listener buat file di mode edit
+        document.getElementById('editProdImgFiles').addEventListener('change', async e => {
+            const files = Array.from(e.target.files).slice(0, 5);
+            editProcessedFilesBase64 = await Promise.all(files.map(f => compressImage(f)));
+            showToast(files.length + " gambar siap diperbarui.", "success");
+        });
+
+        // --- DATA FETCHING (LANGSUNG KE FOLDER ASLI FIREBASE LU) ---
+        async function loadData() {
+            // Langsung tembak ke root collection "products" dan "promotions"
+            const productsRef = collection(db, 'products');
+            const promosRef = collection(db, 'promotions');
+            
+            // Listen products secara real-time
+            onSnapshot(query(productsRef), (prodSnap) => {
+                document.getElementById('stat-products').innerText = prodSnap.size;
+                const tbody = document.getElementById('productTableBody');
+                tbody.innerHTML = '';
+                window.productsData = {}; // Bersihkan data lama
+                
+                if (prodSnap.empty) {
+                    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Belum ada produk.</td></tr>`;
+                }
+
+                prodSnap.forEach(d => {
+                    const p = d.data();
+                    window.productsData[d.id] = p; // Simpan ke global dictionary buat modal edit
+                    const imgs = p.imageUrls || [p.imageUrl];
+                    let sizeDisplay = '';
+                    if(p.sizeStocks) {
+                        sizeDisplay = Object.entries(p.sizeStocks)
+                            .map(([sz, qty]) => `<span style="background:#444; padding:2px 6px; border-radius:4px; margin-right:4px; font-size:0.75rem;">${sz}: <b>${qty}</b></span>`)
+                            .join('');
+                    }
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><div class="img-stack">${imgs.slice(0,3).map(src => `<img src="${src}" class="product-img-preview" onerror="this.style.display='none'">`).join('')}</div></td>
+                            <td><b>${p.name}</b><br><small>Rp ${Number(p.price).toLocaleString()}</small></td>
+                            <td>${sizeDisplay || '-'}</td>
+                            <td>
+                                <button class="btn" style="padding:8px; background:#1e88e5; margin-right: 5px;" onclick="openEditModal('${d.id}')">Edit</button>
+                                <button class="btn" style="padding:8px; background:#444;" onclick="deleteDocById('products', '${d.id}')">Hapus</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                // Update Checkbox untuk form Promo
+                const pContainer = document.getElementById('promoProductsContainer');
+                pContainer.innerHTML = '<label><input type="checkbox" id="checkAllPromo"> SEMUA PRODUK</label><br>';
+                prodSnap.forEach(d => { 
+                    pContainer.innerHTML += `<label><input type="checkbox" class="promo-product-cb" value="${d.id}"> ${d.data().name}</label><br>`; 
+                });
+            }, (err) => {
+                console.error("Products Watch Error:", err);
+                showToast("Gagal mengambil data produk. Cek tab Rules Firebase!", "error");
+            });
+
+            // Listen promotions secara real-time
+            onSnapshot(query(promosRef), (promoSnap) => {
+                document.getElementById('stat-promos').innerText = promoSnap.size;
+                const pbody = document.getElementById('promoTableBody');
+                pbody.innerHTML = '';
+                
+                if (promoSnap.empty) {
+                    pbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Belum ada promo.</td></tr>`;
+                }
+
+                promoSnap.forEach(d => {
+                    const pr = d.data();
+                    pbody.innerHTML += `<tr>
+                        <td>${pr.type === 'direct' ? 'LANGSUNG' : pr.code}</td>
+                        <td>${pr.discount}%</td>
+                        <td>${pr.isAllProducts ? 'Semua' : 'Pilihan'}</td>
+                        <td><button class="btn" style="padding:8px; background:#444;" onclick="deleteDocById('promotions', '${d.id}')">Hapus</button></td>
+                    </tr>`;
+                });
+            }, (err) => {
+                console.error("Promos Watch Error:", err);
+            });
+        }
+
+        // Panggil fetch data otomatis waktu halaman diload (Tanpa login-loginan)
+        window.onload = () => {
+            loadData();
+        };
+
+        // --- ACTIONS ---
+        window.deleteDocById = async (col, id) => {
+            try {
+                await deleteDoc(doc(db, col, id));
+                showToast('Item berhasil dihapus!');
+            } catch (err) {
+                console.error("Delete Error:", err);
+                showToast('Gagal menghapus! Pastikan Rules Firebase lu "allow write: if true".', 'error');
+            }
+        };
+
+        // --- FUNGSI EDIT MODAL ---
+        window.openEditModal = (id) => {
+            const p = window.productsData[id];
+            if(!p) return;
+
+            document.getElementById('editProdId').value = id;
+            document.getElementById('editProdName').value = p.name;
+            document.getElementById('editProdPrice').value = p.price;
+            document.getElementById('editProdCat').value = p.category;
+            document.getElementById('editProdMaterial').value = p.material || "";
+            document.getElementById('editProdDesc').value = p.description || "";
+
+            // Reset checklist ukuran
+            ['S', 'M', 'L', 'XL', 'XXL'].forEach(sz => {
+                document.getElementById('editSizeOpt-'+sz).checked = false;
+                document.getElementById('editSizeQty-'+sz).value = 0;
+            });
+
+            // Set checklist sesuai database
+            if(p.sizeStocks) {
+                Object.entries(p.sizeStocks).forEach(([sz, qty]) => {
+                    const cb = document.getElementById('editSizeOpt-'+sz);
+                    const input = document.getElementById('editSizeQty-'+sz);
+                    if(cb && input) {
+                        cb.checked = true;
+                        input.value = qty;
+                    }
+                });
+            }
+
+            editProcessedFilesBase64 = []; // Reset file baru
+            document.getElementById('editProdImgFiles').value = "";
+            document.getElementById('editModalOverlay').classList.add('active');
+        };
+
+        window.closeEditModal = () => {
+            document.getElementById('editModalOverlay').classList.remove('active');
+        };
+
+        // Submit Update Form
+        document.getElementById('editProductForm').addEventListener('submit', async e => {
+            e.preventDefault();
+            
+            const btn = document.getElementById('btnEditSubmit');
+            const id = document.getElementById('editProdId').value;
+            const sizeStocks = {};
+            let totalStock = 0;
+            
+            ['S', 'M', 'L', 'XL', 'XXL'].forEach(sz => {
+                if(document.getElementById('editSizeOpt-'+sz).checked) {
+                    const qty = parseInt(document.getElementById('editSizeQty-'+sz).value) || 0;
+                    sizeStocks[sz] = qty;
+                    totalStock += qty;
+                }
+            });
+
+            if(Object.keys(sizeStocks).length === 0) return showToast('Pilih minimal satu ukuran!', 'error');
+
+            btn.innerText = "Mengupdate...";
+            btn.disabled = true;
+
+            try {
+                const updateData = {
+                    name: document.getElementById('editProdName').value,
+                    price: parseInt(document.getElementById('editProdPrice').value),
+                    category: document.getElementById('editProdCat').value,
+                    material: document.getElementById('editProdMaterial').value,
+                    description: document.getElementById('editProdDesc').value,
+                    stock: totalStock,
+                    sizeStocks: sizeStocks,
+                    sizes: Object.keys(sizeStocks)
+                };
+
+                // Kalau user mengupload gambar baru di modal, ganti gambar lamanya
+                if(editProcessedFilesBase64.length > 0) {
+                    updateData.imageUrls = editProcessedFilesBase64;
+                    updateData.imageUrl = editProcessedFilesBase64[0];
+                }
+
+                await updateDoc(doc(db, 'products', id), updateData);
+                
+                showToast('Produk Berhasil Diupdate!', 'success');
+                closeEditModal();
+            } catch(err) {
+                console.error("Update Error: ", err);
+                showToast('Gagal update produk!', 'error');
+            } finally {
+                btn.innerText = "Update Produk";
+                btn.disabled = false;
+            }
+        });
+
+        // Add Product
+        document.getElementById('addProductForm').addEventListener('submit', async e => {
+            e.preventDefault();
+            
+            const btn = document.getElementById('btnSubmit');
+            const sizeStocks = {};
+            let totalStock = 0;
+            const checkedSizes = document.querySelectorAll('input[name="sizeOpt"]:checked');
+            const fileInput = document.getElementById('prodImgFiles');
+            
+            if(checkedSizes.length === 0) return showToast('Pilih minimal satu ukuran!', 'error');
+            if(fileInput.files.length === 0) return showToast('Pilih foto produk!', 'error');
+            
+            checkedSizes.forEach(cb => {
+                const sz = cb.value;
+                const qty = parseInt(document.querySelector(`.size-qty[data-size="${sz}"]`).value) || 0;
+                sizeStocks[sz] = qty;
+                totalStock += qty;
+            });
+            
+            btn.innerText = "Memproses & Menyimpan...";
+            btn.disabled = true;
+            try {
+                const filesArray = Array.from(fileInput.files).slice(0, 5);
+                const processedImages = await Promise.all(filesArray.map(f => compressImage(f)));
+
+                // LANGSUNG TEMBAK KE COLLECTION "products" MASNYA
+                const productsRef = collection(db, 'products');
+                await addDoc(productsRef, {
+                    name: document.getElementById('prodName').value || "Tanpa Nama",
+                    price: parseInt(document.getElementById('prodPrice').value) || 0,
+                    category: document.getElementById('prodCat').value || "T-Shirt",
+                    material: document.getElementById('prodMaterial').value || "",
+                    description: document.getElementById('prodDesc').value || "",
+                    stock: totalStock,
+                    sizeStocks: sizeStocks,
+                    sizes: Object.keys(sizeStocks),
+                    imageUrls: processedImages,
+                    imageUrl: processedImages[0] || "",
+                    createdAt: new Date().toISOString()
+                });
+                showToast('Berhasil! Produk Tersimpan di Firebase.', 'success');
+                document.getElementById('addProductForm').reset();
+                document.getElementById('size-bar').style.width = "0%";
+                document.getElementById('size-text').innerText = "0 KB";
+                currentProcessedFilesBase64 = [];
+            } catch (err) { 
+                console.error("Save Product Error:", err);
+                showToast('Gagal: Pastikan tab RULES Firestore mengizinkan write!', 'error'); 
+            } finally { 
+                btn.innerText = "Simpan Produk";
+                btn.disabled = false; 
+            }
+        });
+
+        // Add Promo
+        document.getElementById('addPromoForm').addEventListener('submit', async e => {
+            e.preventDefault();
+            
+            const btn = document.getElementById('btnPromoSubmit');
+            const type = document.getElementById('promoType').value;
+            const code = document.getElementById('promoCode').value.toUpperCase();
+            const discount = parseInt(document.getElementById('promoDiscount').value);
+            const isAllProducts = document.getElementById('checkAllPromo')?.checked || false;
+            const selectedProds = Array.from(document.querySelectorAll('.promo-product-cb:checked')).map(cb => cb.value);
+
+            btn.disabled = true;
+            try {
+                // Tembak ke collection "promotions"
+                const promosRef = collection(db, 'promotions');
+                await addDoc(promosRef, {
+                    type, 
+                    code: type === 'direct' ? '' : code, 
+                    discount, 
+                    isAllProducts, 
+                    targetProducts: selectedProds, 
+                    createdAt: new Date().toISOString()
+                });
+                showToast('Promo Berhasil Dibuat!');
+                document.getElementById('addPromoForm').reset();
+            } catch (err) {
+                console.error("Save Promo Error:", err);
+                showToast('Gagal simpan promo!', 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        // Update Banner
+        document.getElementById('updateBannerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const btn = document.getElementById('btnBannerSubmit');
+            const file = document.getElementById('bannerImgFile').files[0];
+            btn.disabled = true;
+
+            try {
+                let imgData = ""; 
+                if(file) imgData = await compressImage(file);
+                
+                // Tembak langsung ke document "banner_main" di collection "settings"
+                const bannerRef = doc(db, 'settings', 'banner_main');
+                const updateData = {
+                    title: document.getElementById('bannerTitle').value,
+                    subtitle: document.getElementById('bannerSubtitle').value,
+                    updatedAt: new Date().toISOString()
+                };
+                if(imgData) updateData.imageUrl = imgData;
+
+                await setDoc(bannerRef, updateData, { merge: true });
+                showToast("Banner Utama Terupdate!");
+            } catch (err) {
+                console.error("Banner Update Error:", err);
+                showToast("Gagal update banner!", "error");
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        window.togglePromoCodeInput = () => { 
+            document.getElementById('promoCodeGroup').style.display = document.getElementById('promoType').value === 'direct' ? 'none' : 'block'; 
+        };
+    </script>
+</body>
+</html>
