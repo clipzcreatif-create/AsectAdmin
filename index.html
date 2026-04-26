@@ -219,9 +219,9 @@
 
         /* --- TABLE --- */
         .table-container { border-radius: 12px; overflow-x: auto; border: 1px solid var(--border-color); width: 100%; }
-        table { width: 100%; min-width: 600px; border-collapse: collapse; background: var(--bg-panel); }
+        table { width: 100%; min-width: 800px; border-collapse: collapse; background: var(--bg-panel); }
         th { background: #111; padding: 18px; text-align: left; font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
-        td { padding: 18px; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; }
+        td { padding: 18px; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; vertical-align: top; }
         tr:hover { background: rgba(255,255,255,0.02); }
 
         .btn {
@@ -239,6 +239,10 @@
         .btn:hover:not(:disabled) { background-color: var(--accent-red-hover); transform: translateY(-2px); }
         .btn:disabled { background-color: #333; cursor: not-allowed; }
 
+        .btn-sm { padding: 8px 12px; font-size: 0.7rem; }
+        .btn-success { background-color: #2e7d32; }
+        .btn-success:hover { background-color: #388e3c; }
+
         /* --- IMAGES --- */
         .product-img-preview { width: 50px; height: 50px; object-fit: cover; border-radius: 6px; border: 1px solid #333; }
         .img-stack { display: flex; align-items: center; }
@@ -249,12 +253,23 @@
         .toast { background: var(--bg-card); color: #fff; padding: 15px 25px; border-radius: 8px; border-left: 4px solid var(--accent-red); margin-bottom: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); transform: translateX(120%); transition: 0.4s; }
         .toast.show { transform: translateX(0); }
 
+        /* --- STATUS BADGES --- */
+        .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+        .status-pending { background: #ff9800; color: #000; }
+        .status-success { background: #4caf50; color: #fff; }
+        .status-failed { background: #f44336; color: #fff; }
+
         /* --- MODAL EDIT --- */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
         .modal-overlay.active { display: flex; animation: fadeIn 0.3s ease; }
         .modal-content { background: var(--bg-panel); width: 90%; max-width: 800px; max-height: 90vh; overflow-y: auto; border-radius: 12px; border: 1px solid var(--border-color); padding: 30px; position: relative; }
         .modal-close { position: absolute; top: 20px; right: 20px; font-size: 1.5rem; color: var(--text-muted); cursor: pointer; background: none; border: none; outline: none; }
         .modal-close:hover { color: var(--accent-red); }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
 
         /* RESPONSIVE */
         @media (max-width: 768px) {
@@ -452,16 +467,24 @@
             </div>
         </div>
         
-        <!-- TAB: PESANAN (BARU DITAMBAHKAN) -->
+        <!-- TAB: PESANAN -->
         <div id="tab-pesanan" class="tab-pane">
             <h1 class="header-title">Daftar Pesanan</h1>
-            <p class="header-subtitle">Pantau dan kelola transaksi masuk.</p>
+            <p class="header-subtitle">Pantau dan kelola transaksi masuk dari pelanggan.</p>
             <div class="card">
                 <div class="table-container">
                     <table>
-                        <thead><tr><th>ID Pesanan</th><th>Pelanggan</th><th>Total</th><th>Status</th><th>Aksi</th></tr></thead>
+                        <thead>
+                            <tr>
+                                <th>Order ID & Tanggal</th>
+                                <th>Produk Terbeli</th>
+                                <th>Total Bayar</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
                         <tbody id="orderTableBody">
-                            <tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--text-muted);">Belum ada pesanan masuk saat ini.</td></tr>
+                            <tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--text-muted);">Memuat pesanan...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -529,7 +552,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getFirestore, collection, addDoc, deleteDoc, doc, setDoc, updateDoc, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- 100% CONFIG MURNI FIREBASE LU (Tanpa campur tangan AI) ---
+        // --- CONFIG FIREBASE ---
         const firebaseConfig = {
             apiKey: "AIzaSyCf0FUA2mFDADHydsunLFkk6YQb4wo3z2k",
             authDomain: "asect-bbe45.firebaseapp.com",
@@ -540,14 +563,13 @@
             measurementId: "G-J58J3SQNGW"
         };
 
-        // Inisialisasi Firebase
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
         
         const MAX_DB_SIZE_KB = 919;
         let currentProcessedFilesBase64 = [];
-        let editProcessedFilesBase64 = []; // Penampung gambar buat mode edit
-        window.productsData = {}; // Dictionary global untuk simpan data produk
+        let editProcessedFilesBase64 = [];
+        window.productsData = {};
 
         // --- UI UTILS ---
         window.switchTab = function(tabId) {
@@ -577,7 +599,7 @@
                     img.src = e.target.result;
                     img.onload = () => {
                         const canvas = document.createElement('canvas');
-                        const MAX = 800; // Resolusi diturunkan dikit agar load Firestore super cepat
+                        const MAX = 800;
                         let scale = 1;
                         if (img.width > MAX) scale = MAX / img.width;
                         canvas.width = img.width * scale;
@@ -587,9 +609,7 @@
                         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                         res(canvas.toDataURL('image/jpeg', 0.8));
                     };
-                    img.onerror = () => reject("Gagal meload gambar");
                 };
-                reader.onerror = () => reject("Gagal membaca file");
             });
         }
 
@@ -605,165 +625,170 @@
 
         document.getElementById('prodImgFiles').addEventListener('change', e => updateSize(e.target.files));
 
-        // Listener buat file di mode edit
         document.getElementById('editProdImgFiles').addEventListener('change', async e => {
             const files = Array.from(e.target.files).slice(0, 5);
             editProcessedFilesBase64 = await Promise.all(files.map(f => compressImage(f)));
-            showToast(files.length + " gambar siap diperbarui.", "success");
+            showToast(files.length + " gambar siap diperbarui.");
         });
 
-        // --- DATA FETCHING (LANGSUNG KE FOLDER ASLI FIREBASE LU) ---
+        // --- DATA FETCHING ---
         async function loadData() {
-            // Langsung tembak ke root collection "products" dan "promotions"
             const productsRef = collection(db, 'products');
             const promosRef = collection(db, 'promotions');
+            const ordersRef = collection(db, 'orders');
             
-            // Listen products secara real-time
+            // Listen products
             onSnapshot(query(productsRef), (prodSnap) => {
                 document.getElementById('stat-products').innerText = prodSnap.size;
                 const tbody = document.getElementById('productTableBody');
                 tbody.innerHTML = '';
-                window.productsData = {}; // Bersihkan data lama
+                window.productsData = {};
                 
-                if (prodSnap.empty) {
-                    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Belum ada produk.</td></tr>`;
-                }
-
                 prodSnap.forEach(d => {
                     const p = d.data();
-                    window.productsData[d.id] = p; // Simpan ke global dictionary buat modal edit
+                    window.productsData[d.id] = p;
                     const imgs = p.imageUrls || [p.imageUrl];
-                    let sizeDisplay = '';
-                    if(p.sizeStocks) {
-                        sizeDisplay = Object.entries(p.sizeStocks)
-                            .map(([sz, qty]) => `<span style="background:#444; padding:2px 6px; border-radius:4px; margin-right:4px; font-size:0.75rem;">${sz}: <b>${qty}</b></span>`)
-                            .join('');
-                    }
+                    let sizeDisplay = Object.entries(p.sizeStocks || {})
+                        .map(([sz, qty]) => `<span style="background:#444; padding:2px 6px; border-radius:4px; margin-right:4px; font-size:0.75rem;">${sz}: <b>${qty}</b></span>`)
+                        .join('');
+                    
                     tbody.innerHTML += `
                         <tr>
                             <td><div class="img-stack">${imgs.slice(0,3).map(src => `<img src="${src}" class="product-img-preview" onerror="this.style.display='none'">`).join('')}</div></td>
                             <td><b>${p.name}</b><br><small>Rp ${Number(p.price).toLocaleString()}</small></td>
                             <td>${sizeDisplay || '-'}</td>
                             <td>
-                                <button class="btn" style="padding:8px; background:#1e88e5; margin-right: 5px;" onclick="openEditModal('${d.id}')">Edit</button>
-                                <button class="btn" style="padding:8px; background:#444;" onclick="deleteDocById('products', '${d.id}')">Hapus</button>
+                                <button class="btn btn-sm" style="background:#1e88e5; margin-right: 5px;" onclick="openEditModal('${d.id}')">Edit</button>
+                                <button class="btn btn-sm" style="background:#444;" onclick="deleteDocById('products', '${d.id}')">Hapus</button>
                             </td>
                         </tr>
                     `;
                 });
 
-                // Update Checkbox untuk form Promo
                 const pContainer = document.getElementById('promoProductsContainer');
                 pContainer.innerHTML = '<label><input type="checkbox" id="checkAllPromo"> SEMUA PRODUK</label><br>';
                 prodSnap.forEach(d => { 
                     pContainer.innerHTML += `<label><input type="checkbox" class="promo-product-cb" value="${d.id}"> ${d.data().name}</label><br>`; 
                 });
-            }, (err) => {
-                console.error("Products Watch Error:", err);
-                showToast("Gagal mengambil data produk. Cek tab Rules Firebase!", "error");
             });
 
-            // Listen promotions secara real-time
+            // Listen promotions
             onSnapshot(query(promosRef), (promoSnap) => {
                 document.getElementById('stat-promos').innerText = promoSnap.size;
                 const pbody = document.getElementById('promoTableBody');
                 pbody.innerHTML = '';
-                
-                if (promoSnap.empty) {
-                    pbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Belum ada promo.</td></tr>`;
-                }
-
                 promoSnap.forEach(d => {
                     const pr = d.data();
-                    pbody.innerHTML += `<tr>
-                        <td>${pr.type === 'direct' ? 'LANGSUNG' : pr.code}</td>
-                        <td>${pr.discount}%</td>
-                        <td>${pr.isAllProducts ? 'Semua' : 'Pilihan'}</td>
-                        <td><button class="btn" style="padding:8px; background:#444;" onclick="deleteDocById('promotions', '${d.id}')">Hapus</button></td>
-                    </tr>`;
+                    pbody.innerHTML += `<tr><td>${pr.type === 'direct' ? 'LANGSUNG' : pr.code}</td><td>${pr.discount}%</td><td>${pr.isAllProducts ? 'Semua' : 'Pilihan'}</td><td><button class="btn btn-sm" style="background:#444;" onclick="deleteDocById('promotions', '${d.id}')">Hapus</button></td></tr>`;
                 });
-            }, (err) => {
-                console.error("Promos Watch Error:", err);
+            });
+
+            // Listen orders (Real-time sinkron ke screenshot)
+            onSnapshot(query(ordersRef), (orderSnap) => {
+                document.getElementById('stat-orders').innerText = orderSnap.size;
+                const obody = document.getElementById('orderTableBody');
+                obody.innerHTML = '';
+
+                if (orderSnap.empty) {
+                    obody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--text-muted);">Belum ada pesanan masuk.</td></tr>`;
+                    return;
+                }
+
+                orderSnap.forEach(d => {
+                    const o = d.data();
+                    // Tanggal format
+                    const date = o.createdAt ? new Date(o.createdAt.seconds * 1000).toLocaleString('id-ID') : '-';
+                    
+                    // Daftar item
+                    let itemsHtml = (o.items || []).map(item => `
+                        <div style="margin-bottom: 5px; font-size: 0.8rem; border-bottom: 1px solid #333; padding-bottom: 3px;">
+                            <b>${item.name}</b> (${item.size}) x ${item.quantity}<br>
+                            <small>Rp ${Number(item.price).toLocaleString()}</small>
+                        </div>
+                    `).join('');
+
+                    // Badge status
+                    const statusClass = `status-${o.status || 'pending'}`;
+
+                    obody.innerHTML += `
+                        <tr>
+                            <td><small>#${d.id}</small><br><span style="font-size: 0.75rem; color: var(--text-muted);">${date}</span></td>
+                            <td>${itemsHtml || 'No Items'}</td>
+                            <td><b style="color: var(--success-green);">Rp ${Number(o.totalPrice || 0).toLocaleString()}</b></td>
+                            <td><span class="status-badge ${statusClass}">${o.status || 'pending'}</span></td>
+                            <td>
+                                <div style="display:flex; gap: 5px;">
+                                    ${o.status !== 'success' ? `<button class="btn btn-sm btn-success" onclick="updateOrderStatus('${d.id}', 'success')">Lunas</button>` : ''}
+                                    <button class="btn btn-sm" style="background:#444;" onclick="deleteDocById('orders', '${d.id}')">Hapus</button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
             });
         }
 
-        // Panggil fetch data otomatis waktu halaman diload (Tanpa login-loginan)
-        window.onload = () => {
-            loadData();
-        };
+        window.onload = loadData;
 
         // --- ACTIONS ---
         window.deleteDocById = async (col, id) => {
+            if(!confirm("Yakin ingin menghapus data ini?")) return;
             try {
                 await deleteDoc(doc(db, col, id));
-                showToast('Item berhasil dihapus!');
+                showToast('Terhapus!');
             } catch (err) {
-                console.error("Delete Error:", err);
-                showToast('Gagal menghapus! Pastikan Rules Firebase lu "allow write: if true".', 'error');
+                showToast('Gagal hapus!', 'error');
             }
         };
 
-        // --- FUNGSI EDIT MODAL ---
+        window.updateOrderStatus = async (id, newStatus) => {
+            try {
+                await updateDoc(doc(db, 'orders', id), { status: newStatus });
+                showToast('Status diperbarui!');
+            } catch (err) {
+                showToast('Gagal update status!', 'error');
+            }
+        };
+
+        // --- EDIT MODAL LOGIC ---
         window.openEditModal = (id) => {
             const p = window.productsData[id];
             if(!p) return;
-
             document.getElementById('editProdId').value = id;
             document.getElementById('editProdName').value = p.name;
             document.getElementById('editProdPrice').value = p.price;
             document.getElementById('editProdCat').value = p.category;
             document.getElementById('editProdMaterial').value = p.material || "";
             document.getElementById('editProdDesc').value = p.description || "";
-
-            // Reset checklist ukuran
             ['S', 'M', 'L', 'XL', 'XXL'].forEach(sz => {
                 document.getElementById('editSizeOpt-'+sz).checked = false;
                 document.getElementById('editSizeQty-'+sz).value = 0;
             });
-
-            // Set checklist sesuai database
-            if(p.sizeStocks) {
-                Object.entries(p.sizeStocks).forEach(([sz, qty]) => {
-                    const cb = document.getElementById('editSizeOpt-'+sz);
-                    const input = document.getElementById('editSizeQty-'+sz);
-                    if(cb && input) {
-                        cb.checked = true;
-                        input.value = qty;
-                    }
-                });
-            }
-
-            editProcessedFilesBase64 = []; // Reset file baru
-            document.getElementById('editProdImgFiles').value = "";
+            Object.entries(p.sizeStocks || {}).forEach(([sz, qty]) => {
+                const cb = document.getElementById('editSizeOpt-'+sz);
+                const qtyInput = document.getElementById('editSizeQty-'+sz);
+                if(cb) cb.checked = true;
+                if(qtyInput) qtyInput.value = qty;
+            });
             document.getElementById('editModalOverlay').classList.add('active');
         };
 
-        window.closeEditModal = () => {
-            document.getElementById('editModalOverlay').classList.remove('active');
-        };
+        window.closeEditModal = () => document.getElementById('editModalOverlay').classList.remove('active');
 
-        // Submit Update Form
         document.getElementById('editProductForm').addEventListener('submit', async e => {
             e.preventDefault();
-            
-            const btn = document.getElementById('btnEditSubmit');
             const id = document.getElementById('editProdId').value;
+            const btn = document.getElementById('btnEditSubmit');
             const sizeStocks = {};
             let totalStock = 0;
-            
             ['S', 'M', 'L', 'XL', 'XXL'].forEach(sz => {
                 if(document.getElementById('editSizeOpt-'+sz).checked) {
-                    const qty = parseInt(document.getElementById('editSizeQty-'+sz).value) || 0;
-                    sizeStocks[sz] = qty;
-                    totalStock += qty;
+                    const q = parseInt(document.getElementById('editSizeQty-'+sz).value) || 0;
+                    sizeStocks[sz] = q;
+                    totalStock += q;
                 }
             });
-
-            if(Object.keys(sizeStocks).length === 0) return showToast('Pilih minimal satu ukuran!', 'error');
-
-            btn.innerText = "Mengupdate...";
             btn.disabled = true;
-
             try {
                 const updateData = {
                     name: document.getElementById('editProdName').value,
@@ -775,60 +800,38 @@
                     sizeStocks: sizeStocks,
                     sizes: Object.keys(sizeStocks)
                 };
-
-                // Kalau user mengupload gambar baru di modal, ganti gambar lamanya
                 if(editProcessedFilesBase64.length > 0) {
                     updateData.imageUrls = editProcessedFilesBase64;
                     updateData.imageUrl = editProcessedFilesBase64[0];
                 }
-
                 await updateDoc(doc(db, 'products', id), updateData);
-                
-                showToast('Produk Berhasil Diupdate!', 'success');
+                showToast('Update Berhasil!');
                 closeEditModal();
-            } catch(err) {
-                console.error("Update Error: ", err);
-                showToast('Gagal update produk!', 'error');
-            } finally {
-                btn.innerText = "Update Produk";
-                btn.disabled = false;
-            }
+            } catch (err) { showToast('Gagal update!', 'error'); }
+            finally { btn.disabled = false; }
         });
 
-        // Add Product
+        // --- ADD PRODUCT ---
         document.getElementById('addProductForm').addEventListener('submit', async e => {
             e.preventDefault();
-            
             const btn = document.getElementById('btnSubmit');
             const sizeStocks = {};
             let totalStock = 0;
-            const checkedSizes = document.querySelectorAll('input[name="sizeOpt"]:checked');
-            const fileInput = document.getElementById('prodImgFiles');
-            
-            if(checkedSizes.length === 0) return showToast('Pilih minimal satu ukuran!', 'error');
-            if(fileInput.files.length === 0) return showToast('Pilih foto produk!', 'error');
-            
-            checkedSizes.forEach(cb => {
-                const sz = cb.value;
-                const qty = parseInt(document.querySelector(`.size-qty[data-size="${sz}"]`).value) || 0;
-                sizeStocks[sz] = qty;
-                totalStock += qty;
+            document.querySelectorAll('input[name="sizeOpt"]:checked').forEach(cb => {
+                const q = parseInt(document.querySelector(`.size-qty[data-size="${cb.value}"]`).value) || 0;
+                sizeStocks[cb.value] = q;
+                totalStock += q;
             });
-            
-            btn.innerText = "Memproses & Menyimpan...";
             btn.disabled = true;
             try {
-                const filesArray = Array.from(fileInput.files).slice(0, 5);
+                const filesArray = Array.from(document.getElementById('prodImgFiles').files).slice(0, 5);
                 const processedImages = await Promise.all(filesArray.map(f => compressImage(f)));
-
-                // LANGSUNG TEMBAK KE COLLECTION "products" MASNYA
-                const productsRef = collection(db, 'products');
-                await addDoc(productsRef, {
-                    name: document.getElementById('prodName').value || "Tanpa Nama",
-                    price: parseInt(document.getElementById('prodPrice').value) || 0,
-                    category: document.getElementById('prodCat').value || "T-Shirt",
-                    material: document.getElementById('prodMaterial').value || "",
-                    description: document.getElementById('prodDesc').value || "",
+                await addDoc(collection(db, 'products'), {
+                    name: document.getElementById('prodName').value,
+                    price: parseInt(document.getElementById('prodPrice').value),
+                    category: document.getElementById('prodCat').value,
+                    material: document.getElementById('prodMaterial').value,
+                    description: document.getElementById('prodDesc').value,
                     stock: totalStock,
                     sizeStocks: sizeStocks,
                     sizes: Object.keys(sizeStocks),
@@ -836,82 +839,43 @@
                     imageUrl: processedImages[0] || "",
                     createdAt: new Date().toISOString()
                 });
-                showToast('Berhasil! Produk Tersimpan di Firebase.', 'success');
+                showToast('Tersimpan ke Firebase!');
                 document.getElementById('addProductForm').reset();
-                document.getElementById('size-bar').style.width = "0%";
-                document.getElementById('size-text').innerText = "0 KB";
-                currentProcessedFilesBase64 = [];
-            } catch (err) { 
-                console.error("Save Product Error:", err);
-                showToast('Gagal: Pastikan tab RULES Firestore mengizinkan write!', 'error'); 
-            } finally { 
-                btn.innerText = "Simpan Produk";
-                btn.disabled = false; 
-            }
+            } catch (err) { showToast('Gagal simpan!', 'error'); }
+            finally { btn.disabled = false; }
         });
 
-        // Add Promo
+        // --- BANNER & PROMO ---
         document.getElementById('addPromoForm').addEventListener('submit', async e => {
             e.preventDefault();
-            
-            const btn = document.getElementById('btnPromoSubmit');
-            const type = document.getElementById('promoType').value;
-            const code = document.getElementById('promoCode').value.toUpperCase();
-            const discount = parseInt(document.getElementById('promoDiscount').value);
-            const isAllProducts = document.getElementById('checkAllPromo')?.checked || false;
-            const selectedProds = Array.from(document.querySelectorAll('.promo-product-cb:checked')).map(cb => cb.value);
-
-            btn.disabled = true;
             try {
-                // Tembak ke collection "promotions"
-                const promosRef = collection(db, 'promotions');
-                await addDoc(promosRef, {
-                    type, 
-                    code: type === 'direct' ? '' : code, 
-                    discount, 
-                    isAllProducts, 
-                    targetProducts: selectedProds, 
+                await addDoc(collection(db, 'promotions'), {
+                    type: document.getElementById('promoType').value,
+                    code: document.getElementById('promoCode').value.toUpperCase(),
+                    discount: parseInt(document.getElementById('promoDiscount').value),
+                    isAllProducts: document.getElementById('checkAllPromo').checked,
+                    targetProducts: Array.from(document.querySelectorAll('.promo-product-cb:checked')).map(cb => cb.value),
                     createdAt: new Date().toISOString()
                 });
-                showToast('Promo Berhasil Dibuat!');
+                showToast('Promo Aktif!');
                 document.getElementById('addPromoForm').reset();
-            } catch (err) {
-                console.error("Save Promo Error:", err);
-                showToast('Gagal simpan promo!', 'error');
-            } finally {
-                btn.disabled = false;
-            }
+            } catch (err) { showToast('Gagal!', 'error'); }
         });
 
-        // Update Banner
         document.getElementById('updateBannerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
-            const btn = document.getElementById('btnBannerSubmit');
             const file = document.getElementById('bannerImgFile').files[0];
-            btn.disabled = true;
-
             try {
-                let imgData = ""; 
-                if(file) imgData = await compressImage(file);
-                
-                // Tembak langsung ke document "banner_main" di collection "settings"
-                const bannerRef = doc(db, 'settings', 'banner_main');
+                let imgData = file ? await compressImage(file) : null;
                 const updateData = {
                     title: document.getElementById('bannerTitle').value,
                     subtitle: document.getElementById('bannerSubtitle').value,
                     updatedAt: new Date().toISOString()
                 };
                 if(imgData) updateData.imageUrl = imgData;
-
-                await setDoc(bannerRef, updateData, { merge: true });
-                showToast("Banner Utama Terupdate!");
-            } catch (err) {
-                console.error("Banner Update Error:", err);
-                showToast("Gagal update banner!", "error");
-            } finally {
-                btn.disabled = false;
-            }
+                await setDoc(doc(db, 'settings', 'banner_main'), updateData, { merge: true });
+                showToast("Banner Terupdate!");
+            } catch (err) { showToast("Gagal!", "error"); }
         });
 
         window.togglePromoCodeInput = () => { 
