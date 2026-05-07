@@ -810,7 +810,7 @@
                                     <button class="btn btn-sm" style="background:#795548;" onclick="updateOrderStatus('${d.id}', 'process', 'waiting_confirmation')">Proses</button>
                                     ${o.status !== 'success' ? `<button class="btn btn-sm btn-success" onclick="updateOrderStatus('${d.id}', 'success', 'paid')">Lunas</button>` : ''}
                                     <button class="btn btn-sm" style="background:#1565c0;" onclick="updateOrderStatus('${d.id}', 'shipped', 'paid')">Kirim</button>
-                                    <button class="btn btn-sm" style="background:#b71c1c;" onclick="updateOrderStatus('${d.id}', 'cancelled', 'cancelled')">Batal</button>
+                                    ${o.status === 'cancel_requested' ? `<button class="btn btn-sm" style="background:#b71c1c;" onclick="updateOrderStatus('${d.id}', 'cancelled', 'cancelled')">Approve Cancel</button>` : `<button class="btn btn-sm" style="background:#b71c1c;" onclick="updateOrderStatus('${d.id}', 'cancelled', 'cancelled')">Batal</button>`}
                                     <button class="btn btn-sm" style="background:#444;" onclick="deleteDocById('orders', '${d.id}')">Hapus</button>
                                 </div>
                             </td>
