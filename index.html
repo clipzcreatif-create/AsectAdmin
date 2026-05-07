@@ -303,6 +303,7 @@
             <li onclick="switchTab('banner')">🖼️ Kelola Banner</li>
             <li onclick="switchTab('promosi')">🎟️ Kelola Promosi</li>
             <li onclick="switchTab('pesanan')">🛒 Daftar Pesanan</li>
+            <li onclick="switchTab('preview')">🚀 Preview Sync</li>
         </ul>
     </div>
 
@@ -329,6 +330,14 @@
                 </div>
             </div>
         </div>
+
+            <div class="card">
+                <h3>Blueprint Preview Terbaru</h3>
+                <p style="color: var(--text-muted); line-height: 1.8; font-size: 0.9rem;">
+                    Admin ini menjadi pusat kendali konten Asect: produk, stok, gambar/subject, banner, promo, dan order.
+                    Web utama membaca data dari database yang sama secara realtime, jadi setiap update di admin harus langsung terasa di storefront.
+                </p>
+            </div>
 
         <!-- TAB: KELOLA PRODUK -->
         <div id="tab-produk" class="tab-pane">
@@ -477,6 +486,7 @@
                         <thead>
                             <tr>
                                 <th>Order ID & Tanggal</th>
+                                <th>Pelanggan</th>
                                 <th>Produk Terbeli</th>
                                 <th>Total Bayar</th>
                                 <th>Status</th>
@@ -484,10 +494,29 @@
                             </tr>
                         </thead>
                         <tbody id="orderTableBody">
-                            <tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--text-muted);">Memuat pesanan...</td></tr>
+                            <tr><td colspan="6" style="text-align:center; padding: 40px; color: var(--text-muted);">Memuat pesanan...</td></tr>
                         </tbody>
                     </table>
                 </div>
+            </div>
+        </div>
+
+        <!-- TAB: PREVIEW -->
+        <div id="tab-preview" class="tab-pane">
+            <h1 class="header-title">Preview Sync</h1>
+            <p class="header-subtitle">Checklist konsep dua web berkesinambungan sebelum deploy preview.</p>
+            <div class="card">
+                <h3>Arah Integrasi</h3>
+                <ul style="line-height: 2; color: var(--text-muted); padding-left: 18px;">
+                    <li><b style="color:#fff;">Asect</b> = storefront customer.</li>
+                    <li><b style="color:#fff;">AsectAdmin</b> = pusat kendali konten dan order.</li>
+                    <li>Produk, promo, banner, dan order memakai Firestore yang sama.</li>
+                    <li>Preview aman: jangan publish admin tanpa login dan rules yang benar.</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>Field Order Preview</h3>
+                <p style="color: var(--text-muted); line-height: 1.8;">Order terbaru dari web utama membawa data pembeli: nama, WhatsApp, catatan/alamat, subtotal, diskon promo, total, item, dan status.</p>
             </div>
         </div>
 
@@ -690,7 +719,7 @@
                 obody.innerHTML = '';
 
                 if (orderSnap.empty) {
-                    obody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding: 40px; color: var(--text-muted);">Belum ada pesanan masuk.</td></tr>`;
+                    obody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 40px; color: var(--text-muted);">Belum ada pesanan masuk.</td></tr>`;
                     return;
                 }
 
@@ -709,16 +738,31 @@
 
                     // Badge status
                     const statusClass = `status-${o.status || 'pending'}`;
+                    const customer = o.customer || {};
+                    const customerHtml = `
+                        <b>${customer.name || '-'}</b><br>
+                        <small>${customer.whatsapp || '-'}</small><br>
+                        <small style="color: var(--text-muted);">${customer.note || ''}</small>
+                    `;
+                    const totalHtml = `
+                        <b style="color: var(--success-green);">Rp ${Number(o.totalPrice || 0).toLocaleString()}</b><br>
+                        <small>Subtotal: Rp ${Number(o.subtotalPrice || o.totalPrice || 0).toLocaleString()}</small><br>
+                        <small>Diskon: Rp ${Number(o.discountPrice || 0).toLocaleString()}</small>
+                    `;
 
                     obody.innerHTML += `
                         <tr>
                             <td><small>#${d.id}</small><br><span style="font-size: 0.75rem; color: var(--text-muted);">${date}</span></td>
+                            <td>${customerHtml}</td>
                             <td>${itemsHtml || 'No Items'}</td>
-                            <td><b style="color: var(--success-green);">Rp ${Number(o.totalPrice || 0).toLocaleString()}</b></td>
+                            <td>${totalHtml}</td>
                             <td><span class="status-badge ${statusClass}">${o.status || 'pending'}</span></td>
                             <td>
-                                <div style="display:flex; gap: 5px;">
+                                <div style="display:flex; gap: 5px; flex-wrap: wrap;">
+                                    <button class="btn btn-sm" style="background:#795548;" onclick="updateOrderStatus('${d.id}', 'process')">Proses</button>
                                     ${o.status !== 'success' ? `<button class="btn btn-sm btn-success" onclick="updateOrderStatus('${d.id}', 'success')">Lunas</button>` : ''}
+                                    <button class="btn btn-sm" style="background:#1565c0;" onclick="updateOrderStatus('${d.id}', 'shipped')">Kirim</button>
+                                    <button class="btn btn-sm" style="background:#b71c1c;" onclick="updateOrderStatus('${d.id}', 'cancelled')">Batal</button>
                                     <button class="btn btn-sm" style="background:#444;" onclick="deleteDocById('orders', '${d.id}')">Hapus</button>
                                 </div>
                             </td>
