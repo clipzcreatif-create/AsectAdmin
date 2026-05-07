@@ -489,6 +489,7 @@
                                 <th>Pelanggan</th>
                                 <th>Produk Terbeli</th>
                                 <th>Total Bayar</th>
+                                <th>Pembayaran</th>
                                 <th>Status</th>
                                 <th>Aksi</th>
                             </tr>
@@ -516,7 +517,7 @@
             </div>
             <div class="card">
                 <h3>Field Order Preview</h3>
-                <p style="color: var(--text-muted); line-height: 1.8;">Order terbaru dari web utama membawa data pembeli: nama, WhatsApp, catatan/alamat, subtotal, diskon promo, total, item, dan status.</p>
+                <p style="color: var(--text-muted); line-height: 1.8;">Order terbaru dari web utama membawa data pembeli, invoice, metode pembayaran, status pembayaran, subtotal, diskon promo, total, item, dan status pengiriman.</p>
             </div>
         </div>
 
@@ -749,6 +750,13 @@
                         <small>Subtotal: Rp ${Number(o.subtotalPrice || o.totalPrice || 0).toLocaleString()}</small><br>
                         <small>Diskon: Rp ${Number(o.discountPrice || 0).toLocaleString()}</small>
                     `;
+                    const payment = o.payment || {};
+                    const paymentHtml = `
+                        <b>${payment.methodLabel || '-'}</b><br>
+                        <small>Invoice: ${o.invoiceCode || d.id}</small><br>
+                        <small>Status: ${payment.status || '-'}</small><br>
+                        <small>${payment.danaNumber ? 'Dana: ' + payment.danaNumber : ''}</small>
+                    `;
 
                     obody.innerHTML += `
                         <tr>
@@ -756,13 +764,14 @@
                             <td>${customerHtml}</td>
                             <td>${itemsHtml || 'No Items'}</td>
                             <td>${totalHtml}</td>
+                            <td>${paymentHtml}</td>
                             <td><span class="status-badge ${statusClass}">${o.status || 'pending'}</span></td>
                             <td>
                                 <div style="display:flex; gap: 5px; flex-wrap: wrap;">
-                                    <button class="btn btn-sm" style="background:#795548;" onclick="updateOrderStatus('${d.id}', 'process')">Proses</button>
-                                    ${o.status !== 'success' ? `<button class="btn btn-sm btn-success" onclick="updateOrderStatus('${d.id}', 'success')">Lunas</button>` : ''}
-                                    <button class="btn btn-sm" style="background:#1565c0;" onclick="updateOrderStatus('${d.id}', 'shipped')">Kirim</button>
-                                    <button class="btn btn-sm" style="background:#b71c1c;" onclick="updateOrderStatus('${d.id}', 'cancelled')">Batal</button>
+                                    <button class="btn btn-sm" style="background:#795548;" onclick="updateOrderStatus('${d.id}', 'process', 'waiting_confirmation')">Proses</button>
+                                    ${o.status !== 'success' ? `<button class="btn btn-sm btn-success" onclick="updateOrderStatus('${d.id}', 'success', 'paid')">Lunas</button>` : ''}
+                                    <button class="btn btn-sm" style="background:#1565c0;" onclick="updateOrderStatus('${d.id}', 'shipped', 'paid')">Kirim</button>
+                                    <button class="btn btn-sm" style="background:#b71c1c;" onclick="updateOrderStatus('${d.id}', 'cancelled', 'cancelled')">Batal</button>
                                     <button class="btn btn-sm" style="background:#444;" onclick="deleteDocById('orders', '${d.id}')">Hapus</button>
                                 </div>
                             </td>
@@ -785,9 +794,11 @@
             }
         };
 
-        window.updateOrderStatus = async (id, newStatus) => {
+        window.updateOrderStatus = async (id, newStatus, paymentStatus=null) => {
             try {
-                await updateDoc(doc(db, 'orders', id), { status: newStatus });
+                const payload = { status: newStatus };
+                if (paymentStatus) payload['payment.status'] = paymentStatus;
+                await updateDoc(doc(db, 'orders', id), payload);
                 showToast('Status diperbarui!');
             } catch (err) {
                 showToast('Gagal update status!', 'error');
